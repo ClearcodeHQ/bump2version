@@ -1,4 +1,5 @@
 import argparse
+import subprocess
 from datetime import datetime
 import glob
 import io
@@ -129,6 +130,8 @@ def main(original_args=None):
     _update_config_file(
         config, config_file, config_newlines, config_file_exists, args.new_version, args.dry_run,
     )
+
+    _run_commands(defaults, args.dry_run,)
 
     # commit and tag
     if vcs:
@@ -285,7 +288,7 @@ def _load_configuration(config_file, explicit_config, defaults):
 
     defaults.update(dict(config.items("bumpversion")))
 
-    for listvaluename in ("serialize",):
+    for listvaluename in ("serialize", 'commands'):
         try:
             value = config.get("bumpversion", listvaluename)
             defaults[listvaluename] = list(
@@ -657,6 +660,15 @@ def _update_config_file(
             "Unable to write UTF-8 to config file, because of an old configparser version. "
             "Update with `pip install --upgrade configparser`."
         )
+
+
+def _run_commands(defaults, dry_run):
+    """Run additional default commands."""
+    for command in defaults.get('commands', []):
+        if dry_run:
+            logger.info('Would run %s command', command)
+        else:
+            subprocess.check_output(command, shell=True)
 
 
 def _commit_to_vcs(files, context, config_file, config_file_exists, vcs, args,
